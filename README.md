@@ -39,6 +39,7 @@ Mi topología está compuesta por los siguientes elementos:
           [Windows PC]         [Kali Linux]
          (12.0.10.x/24)        (12.0.20.2/24)
 ```
+<img width="747" height="815" alt="image" src="https://github.com/user-attachments/assets/6987390b-2f75-4686-aa93-7dea7c2425e5" />
 
 ### Dispositivos y Configuración
 
@@ -230,29 +231,7 @@ VLAN0010
 
 ---
 
-### 2️⃣ Preparar Kali Linux
-
-En mi equipo Kali, verifiqué la conectividad:
-
-```bash
-┌──(root㉿kali)-[/home/kali/stp-attack]
-└─# ip addr show eth0
-2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
-    link/ether 00:0c:29:3a:5f:12 brd ff:ff:ff:ff:ff:ff
-    inet 12.0.20.2/24 brd 12.0.20.255 scope global eth0
-
-┌──(root㉿kali)-[/home/kali/stp-attack]
-└─# ping -c 2 12.0.20.1
-PING 12.0.20.1 (12.0.20.1) 56(84) bytes of data.
-64 bytes from 12.0.20.1: icmp_seq=1 ttl=255 time=3.21 ms
-64 bytes from 12.0.20.1: icmp_seq=2 ttl=255 time=2.87 ms
-```
-
-✅ Conexión a la red confirmada.
-
----
-
-### 3️⃣ Ejecutar el Ataque
+### 2️⃣ Ejecutar el Ataque
 
 Lancé el script con los parámetros correspondientes:
 
@@ -276,7 +255,7 @@ Lancé el script con los parámetros correspondientes:
 
 ---
 
-### 4️⃣ Observar el Cambio en los Switches
+### 3️⃣ Observar el Cambio en los Switches
 
 Inmediatamente después, verifiqué el estado de STP en SW-1:
 
@@ -300,49 +279,7 @@ VLAN0010
 
 ---
 
-### 5️⃣ Validar la Topología
-
-También ejecuté:
-
-```bash
-SW-1# show spanning-tree root
-
-                                        Root    Hello Max Fwd
-Vlan                   Root ID          Cost    Time  Age Dly  Root Port
----------------- -------------------- --------- ----- --- ---  ------------
-VLAN0010         0        0000.0000.0001       4      2   20  15  Gi0/1
-VLAN0020         0        0000.0000.0001       4      2   20  15  Gi0/1
-```
-
-Ahora **todos los switches** consideran a `0000.0000.0001` como Root Bridge.
-
-![Captura: Salida de 'show spanning-tree root' mostrando el cambio]
-
----
-
-### 6️⃣ Capturar Tráfico (Man-in-the-Middle)
-
-Con el ataque activo, habilité el reenvío de paquetes en Kali para actuar como intermediario:
-
-```bash
-┌──(root㉿kali)-[/home/kali/stp-attack]
-└─# echo 1 > /proc/sys/net/ipv4/ip_forward
-
-┌──(root㉿kali)-[/home/kali/stp-attack]
-└─# tcpdump -i eth0 -n
-tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
-listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
-14:32:11.234567 IP 12.0.10.5 > 12.0.20.1: ICMP echo request, id 1, seq 1, length 64
-14:32:11.234789 IP 12.0.20.1 > 12.0.10.5: ICMP echo reply, id 1, seq 1, length 64
-```
-
-✅ Pude interceptar tráfico entre VLANs que pasa ahora a través de mi dispositivo.
-
-![Captura: Wireshark mostrando tráfico interceptado]
-
----
-
-### 7️⃣ Detener el Ataque
+### 4️⃣ Detener el Ataque
 
 Para finalizar, presioné `Ctrl+C`:
 
@@ -390,6 +327,17 @@ show logging | include SPANTREE
 ```
 
 ---
+
+## Capturas de Pantalla Sugeridas
+
+## 1- Estado inicial del STP (Antes del ataque)
+<img width="776" height="433" alt="image" src="https://github.com/user-attachments/assets/aae33145-eb56-427c-979a-016c20b82b7c" />
+
+## 2- Kali ejecutando el ataque STP
+<img width="750" height="412" alt="image" src="https://github.com/user-attachments/assets/78deaca1-aa0c-4e20-9770-603f36773a2e" />
+
+## 3- Cambio del Root Bridge
+<img width="744" height="410" alt="image" src="https://github.com/user-attachments/assets/003d02ee-ab8b-406d-8a97-60bcc85e87a3" />
 
 ## Impacto del Ataque
 
@@ -536,22 +484,6 @@ interface gigabitEthernet 0/2
  switchport port-security mac-address sticky
  exit
 ```
-
----
-
-## Capturas de Pantalla Sugeridas
-
-📸 **Incluir las siguientes capturas en el repositorio:**
-
-1. **`01-topologia.png`**: Diagrama de la topología en GNS3/EVE-NG
-2. **`02-stp-antes.png`**: Salida de `show spanning-tree` antes del ataque
-3. **`03-ejecucion-script.png`**: Terminal de Kali ejecutando `stp_attack.py`
-4. **`04-stp-despues.png`**: Salida mostrando el nuevo Root Bridge (Kali)
-5. **`05-wireshark-bpdu.png`**: Wireshark capturando tramas BPDU maliciosas
-6. **`06-trafico-interceptado.png`**: tcpdump/Wireshark mostrando tráfico redirigido
-7. **`07-bpdu-guard.png`**: Puerto en `err-disabled` tras activar BPDU Guard
-8. **`08-root-guard.png`**: Salida de `show spanning-tree inconsistentports`
-
 ---
 
 ## Conclusión
@@ -573,12 +505,6 @@ Este ejercicio refuerza la importancia de **no confiar ciegamente en los protoco
 
 ## Recursos Adicionales
 
-📚 **Referencias técnicas:**
-
-- [Cisco STP Best Practices](https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/5234-5.html)
-- [Scapy Documentation](https://scapy.readthedocs.io/)
-- [IEEE 802.1D Spanning Tree Protocol](https://standards.ieee.org/standard/802_1D-2004.html)
-
 📌 **Proyectos relacionados:**
 
 - DHCP Starvation Attack
@@ -593,6 +519,7 @@ Este proyecto tiene fines **exclusivamente educativos**. El uso indebido de esta
 
 ---
 
-**Desarrollado por:** mariana121319  
-**Fecha:** Febrero 2026  
-**Entorno:** GNS3/EVE-NG con vIOS y Kali Linux
+**Desarrollado por:** Mariana Doñe Lara
+**Matricula** 20241200
+**Fecha:** 11 de febrero 2026  
+**Entorno:** Pnetlab con vIOS y Kali Linux
